@@ -20,12 +20,18 @@ def parse_guess(raw: str):
 
     try:
         if "." in raw:
+            # FIXME: Logic breaks here (Bug #3) — int(float("33.6")) silently
+            # truncates to 33, so a decimal guess can "win" against secret 33
+            # instead of being rejected as not a whole number.
             value = int(float(raw))
         else:
             value = int(raw)
     except Exception:
         return False, None, "That is not a number."
 
+    # FIXME: Logic breaks here (Bugs #1 & #2) — guess is never checked against
+    # the difficulty range (low, high). -2 and 10000 are accepted and get a
+    # HIGHER/LOWER hint instead of a "Not in Range" message.
     return True, value, None
 
 
