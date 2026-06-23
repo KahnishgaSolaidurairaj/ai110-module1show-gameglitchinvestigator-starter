@@ -11,27 +11,28 @@ def get_range_for_difficulty(difficulty: str):
     return 1, 100
 
 
-def parse_guess(raw: str):
+def parse_guess(raw: str, low: int, high: int):
     if raw is None:
         return False, None, "Enter a guess."
+
+    raw = raw.strip()
 
     if raw == "":
         return False, None, "Enter a guess."
 
+    # FIX: dropping int(float(raw)); I verified the truncation bug, then accepted int(raw) so decimals like "33.6" are rejected.
+    # So now we Reject anything that isn't a whole number. int(raw) raises ValueError on decimals like "33.6", so we no longer truncate them into a valid guess.
     try:
-        if "." in raw:
-            # FIXME: Logic breaks here (Bug #3) — int(float("33.6")) silently
-            # truncates to 33, so a decimal guess can "win" against secret 33
-            # instead of being rejected as not a whole number.
-            value = int(float(raw))
-        else:
-            value = int(raw)
+        value = int(raw)
     except Exception:
-        return False, None, "That is not a number."
+        return False, None, "That is not a whole number."
 
-    # FIXME: Logic breaks here (Bugs #1 & #2) — guess is never checked against
-    # the difficulty range (low, high). -2 and 10000 are accepted and get a
-    # HIGHER/LOWER hint instead of a "Not in Range" message.
+    # FIX: Added a range check with the AI's help after it changed the signature
+    # to parse_guess(raw, low, high); I confirmed -2 and 10000 now get rejected.
+    # Reject guesses outside the difficulty range instead of giving a hint.
+    if value < low or value > high:
+        return False, None, f"Not in range. Pick a number between {low} and {high}."
+
     return True, value, None
 
 
@@ -39,18 +40,25 @@ def check_guess(guess, secret):
     if guess == secret:
         return "Win", "🎉 Correct!"
 
-    try:
-        if guess > secret:
-            return "Too High", "📈 Go HIGHER!"
-        else:
-            return "Too Low", "📉 Go LOWER!"
-    except TypeError:
-        g = str(guess)
-        if g == secret:
-            return "Win", "🎉 Correct!"
-        if g > secret:
-            return "Too High", "📈 Go HIGHER!"
-        return "Too Low", "📉 Go LOWER!"
+    # try:
+    #     if guess > secret:
+    #         return "Too High", "📈 Go HIGHER!"
+    #     else:
+    #         return "Too Low", "📉 Go LOWER!"
+    # except TypeError:
+    #     g = str(guess)
+    #     if g == secret:
+    #         return "Win", "🎉 Correct!"
+    #     if g > secret:
+    #         return "Too High", "📈 Go HIGHER!"
+    #     return "Too Low", "📉 Go LOWER!"
+    # FIX: I found the hint text was swapped — a too-high guess told the
+    # player to "Go HIGHER". The hint must point toward the next guess, so a
+    # guess above the secret means go LOWER, and below means go HIGHER.
+    if guess > secret:
+        return "Too High", "📉 Go LOWER!"
+    else:
+        return "Too Low", "📈 Go HIGHER!"
 
 
 def update_score(current_score: int, outcome: str, attempt_number: int):
@@ -153,18 +161,23 @@ if st.session_state.status != "playing":
 if submit:
     st.session_state.attempts += 1
 
-    ok, guess_int, err = parse_guess(raw_guess)
+    # FIX: Updated this call to pass low/high after I changed the
+    # parse_guess signature; needed so the new range check actually runs.
+    ok, guess_int, err = parse_guess(raw_guess, low, high)
 
     if not ok:
         st.session_state.history.append(raw_guess)
         st.error(err)
     else:
         st.session_state.history.append(guess_int)
-
-        if st.session_state.attempts % 2 == 0:
-            secret = str(st.session_state.secret)
-        else:
-            secret = st.session_state.secret
+        #if st.session_state.attempts % 2 == 0:
+        #    secret = str(st.session_state.secret)
+        #else:
+        #    secret = st.session_state.secret
+        # FIX: Found issue where this str() cast as the high/low flip bug; I verified
+        # guess 20 vs secret 87 said "go lower" because "20" > "87" compares as
+        # text. Removed the even-attempt cast so we always compare integers values.
+        secret = st.session_state.secret
 
         outcome, message = check_guess(guess_int, secret)
 
