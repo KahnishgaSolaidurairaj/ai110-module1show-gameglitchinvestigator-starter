@@ -26,11 +26,18 @@
 
 > Document how you used AI to help generate or improve tests.
 
+**Prompt used to generate the suite:**
+
+```
+Identify three edge-case inputs that might still break my guessing game's parse_guess(raw, low, high) function, then write a pytest suite that verifies the game handles each one gracefully (returns ok=False with a helpful message instead of crashing or accepting it). Use the Normal range of 1 to 100.
+```
+
 | Edge Case | Prompt Used | AI-Suggested Test | Did It Pass? | Your Reasoning |
 |-----------|-------------|-------------------|--------------|----------------|
-| | | | | |
-| | | | | |
-| | | | | |
+| Negative number (`-5`) | (prompt above) | `test_negative_number_is_rejected` — expects `ok=False` and a "range" message | ✅ Yes | A negative is a valid int but outside the range, so it must be rejected, not given a hint. |
+| Decimal (`33.6`) | (prompt above) | `test_decimal_is_rejected` — expects `ok=False` and a "whole number" message | ✅ Yes | The original code truncated decimals to win, so the game must now reject them outright. |
+| Extremely large value (`999999999999`) | (prompt above) | `test_extremely_large_value_is_rejected` — expects `ok=False` and a "range" message | ✅ Yes | A huge number could be wrongly accepted or break expectations; it should fall out of range. |
+| Range boundaries (`1` and `100`) | (prompt above) | `test_boundaries_are_accepted` — expects `(True, value, None)` | ✅ Yes | Added to confirm the range check is inclusive and doesn't over-reject valid edge values. |
 
 ---
 

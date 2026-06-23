@@ -14,9 +14,9 @@ Document at least 3 bugs you found. Add rows as needed.
 
 | Input | Expected Behavior | Actual Behavior | Console Output / Error |
 |-------|-------------------|-----------------|------------------------|
-|   -2  | Hint: Not in Range| Hint: Go LOWER! | None                   |
-| 10000 | Hint: Not in Range| Hint: Go HIGHER!| None                   |
-|  33.6 | Incorrect         | "You won! The secret was 33" | None      |
+|   -2  | Hint: Not in Range| Hint: "Go LOWER!" based on the secret it should have said to go higher or out of range | None                   |
+| 10000 | Hint: Not in Range| Hint: "Go HIGHER!" based on the secret it should have said to go lower or out of range| None                   |
+|  33.6 | Incorrect, Hint to use whole numbers | "You won! The secret was 33" but the decimal value and 33 is not the same| None      |
 
 ---
 
