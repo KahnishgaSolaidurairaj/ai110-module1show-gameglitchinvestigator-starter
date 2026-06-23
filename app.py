@@ -1,82 +1,14 @@
 import random
 import streamlit as st
 
-def get_range_for_difficulty(difficulty: str):
-    if difficulty == "Easy":
-        return 1, 20
-    if difficulty == "Normal":
-        return 1, 100
-    if difficulty == "Hard":
-        return 1, 50
-    return 1, 100
-
-
-def parse_guess(raw: str, low: int, high: int):
-    if raw is None:
-        return False, None, "Enter a guess."
-
-    raw = raw.strip()
-
-    if raw == "":
-        return False, None, "Enter a guess."
-
-    # FIX: dropping int(float(raw)); I verified the truncation bug, then accepted int(raw) so decimals like "33.6" are rejected.
-    # So now we Reject anything that isn't a whole number. int(raw) raises ValueError on decimals like "33.6", so we no longer truncate them into a valid guess.
-    try:
-        value = int(raw)
-    except Exception:
-        return False, None, "That is not a whole number."
-
-    # FIX: Added a range check with the AI's help after it changed the signature
-    # to parse_guess(raw, low, high); I confirmed -2 and 10000 now get rejected.
-    # Reject guesses outside the difficulty range instead of giving a hint.
-    if value < low or value > high:
-        return False, None, f"Not in range. Pick a number between {low} and {high}."
-
-    return True, value, None
-
-
-def check_guess(guess, secret):
-    if guess == secret:
-        return "Win", "🎉 Correct!"
-
-    # try:
-    #     if guess > secret:
-    #         return "Too High", "📈 Go HIGHER!"
-    #     else:
-    #         return "Too Low", "📉 Go LOWER!"
-    # except TypeError:
-    #     g = str(guess)
-    #     if g == secret:
-    #         return "Win", "🎉 Correct!"
-    #     if g > secret:
-    #         return "Too High", "📈 Go HIGHER!"
-    #     return "Too Low", "📉 Go LOWER!"
-    # FIX: I found the hint text was swapped — a too-high guess told the
-    # player to "Go HIGHER". The hint must point toward the next guess, so a
-    # guess above the secret means go LOWER, and below means go HIGHER.
-    if guess > secret:
-        return "Too High", "📉 Go LOWER!"
-    else:
-        return "Too Low", "📈 Go HIGHER!"
-
-
-def update_score(current_score: int, outcome: str, attempt_number: int):
-    if outcome == "Win":
-        points = 100 - 10 * (attempt_number + 1)
-        if points < 10:
-            points = 10
-        return current_score + points
-
-    if outcome == "Too High":
-        if attempt_number % 2 == 0:
-            return current_score + 5
-        return current_score - 5
-
-    if outcome == "Too Low":
-        return current_score - 5
-
-    return current_score
+# FIX: Refactored the four game functions into logic_utils.py and import them
+# here so the game and the pytest tests share one source of truth.
+from logic_utils import (
+    get_range_for_difficulty,
+    parse_guess,
+    check_guess,
+    update_score,
+)
 
 st.set_page_config(page_title="Glitchy Guesser", page_icon="🎮")
 
@@ -92,8 +24,8 @@ difficulty = st.sidebar.selectbox(
 )
 
 attempt_limit_map = {
-    "Easy": 6,
-    "Normal": 8,
+    "Easy": 8,
+    "Normal": 6,
     "Hard": 5,
 }
 attempt_limit = attempt_limit_map[difficulty]
@@ -121,7 +53,7 @@ if "history" not in st.session_state:
 st.subheader("Make a guess")
 
 st.info(
-    f"Guess a number between 1 and 100. "
+    f"Guess a number between {low} and {high}. "
     f"Attempts left: {attempt_limit - st.session_state.attempts}"
 )
 
